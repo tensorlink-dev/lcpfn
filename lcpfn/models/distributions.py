@@ -274,6 +274,7 @@ def get_bucket_limits_(
         bucket_limits = torch.cat(
             [full_range_tensor[0:1], bucket_limits, full_range_tensor[1:2]], 0
         )
+        bucket_limits = bucket_limits.sort().values
 
     else:
         assert full_range is not None
@@ -286,6 +287,7 @@ def get_bucket_limits_(
             ],
             0,
         )
+        bucket_limits = bucket_limits.sort().values
 
     assert len(bucket_limits) - 1 == num_outputs
     return bucket_limits
@@ -332,6 +334,7 @@ def get_bucket_limits(
         bucket_limits = torch.cat(
             [full_range_tensor[0:1], bucket_limits, full_range_tensor[1:2]], 0
         )
+        bucket_limits = bucket_limits.sort().values
 
     else:
         assert full_range is not None
@@ -344,6 +347,7 @@ def get_bucket_limits(
             ],
             0,
         )
+        bucket_limits = bucket_limits.sort().values
 
     assert (
         len(bucket_limits) - 1 == num_outputs
