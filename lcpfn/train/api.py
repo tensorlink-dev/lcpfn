@@ -147,6 +147,12 @@ def train_meta(
     )
 
     bucket_limits = bar_distribution.get_bucket_limits(config.num_borders, ys=ys[2])
+    # ``get_bucket_limits`` should already return sorted borders, but in practice the
+    # underlying statistics can occasionally generate tiny numerical instabilities
+    # that break the monotonicity assumption enforced by ``BarDistribution``.
+    # Sorting here guarantees the invariant required by the criterion while keeping
+    # the original tensor device and dtype.
+    bucket_limits, _ = bucket_limits.sort()
 
     criterion = bar_distribution.FullSupportBarDistribution(bucket_limits)
 
@@ -177,7 +183,7 @@ def train_meta(
         }
     )
 
-    model = loop.train(**training_kwargs)
+    _, _, model, _ = loop.train(**training_kwargs)
 
     if checkpoint_path is not None:
         _save_checkpoint(
