@@ -1,7 +1,7 @@
 from functools import partial
 import torch
 import numpy as np
-from lcpfn.curves import (
+from lcpfn.data.curves import (
     pow3,
     ilog2,
     janoschek,
@@ -16,7 +16,7 @@ from lcpfn.curves import (
     pow4,
     dr_hill_zero_background,
 )
-from lcpfn.curves import (
+from lcpfn.data.curves import (
     prior_pow3,
     prior_janoschek,
     prior_log_power,
@@ -28,7 +28,7 @@ from lcpfn.curves import (
     prior_pow4,
     prior_dr_hill_zero_background,
 )
-from lcpfn.curves import (
+from lcpfn.data.curves import (
     uniform_prior_pow3,
     uniform_prior_ilog2,
     uniform_prior_janoschek,
@@ -124,9 +124,7 @@ def sample_prior_comb(
             y += w * f_components[f](x, **kwargs)
         # add noise (can exceed [0,1], but afaik no way to implement this prior in Tobias work)
         # Note: This is the correct definition, but it differs from the noise prior definition in the paper
-        std = np.exp(
-            rng.normal(var_lnloc, var_lnscale)
-        )  
+        std = np.exp(rng.normal(var_lnloc, var_lnscale))
 
         # reject any curves that are non-increasing, exceed the [0,1] range
         if (

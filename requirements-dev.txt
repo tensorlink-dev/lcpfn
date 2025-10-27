@@ -1,0 +1,2 @@
+# Install development dependencies for LC-PFN
+.[dev]
