@@ -7,7 +7,7 @@ from torch import Tensor
 import torch.nn.functional as F
 from torch.nn import Module, TransformerEncoder
 
-from lcpfn.layer import TransformerEncoderLayer, _get_activation_fn
+from lcpfn.models.layers import TransformerEncoderLayer, _get_activation_fn
 from lcpfn.utils import SeqBN, bool_mask_to_att_mask
 
 

@@ -1,0 +1,9 @@
+site_name: LC-PFN
+docs_dir: docs
+theme:
+  name: material
+nav:
+  - Overview: index.md
+  - Inference: inference.md
+  - Training: training.md
+  - API Reference: api_reference.md

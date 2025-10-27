@@ -1,10 +1,10 @@
 import math
 
+import math
+
 import torch
 import torch.nn as nn
 from lcpfn.utils import normalize_data
-import torch.nn.functional as F
-from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 
 class StyleEncoder(nn.Module):
@@ -101,10 +101,12 @@ def get_normalized_uniform_encoder(encoder_creator):
     )
 
 
-Linear = nn.Linear
-MLP = lambda num_features, emsize: nn.Sequential(
-    nn.Linear(num_features + 1, emsize * 2), nn.ReLU(), nn.Linear(emsize * 2, emsize)
-)
+def mlp(num_features: int, emsize: int) -> nn.Sequential:
+    return nn.Sequential(
+        nn.Linear(num_features + 1, emsize * 2),
+        nn.ReLU(),
+        nn.Linear(emsize * 2, emsize),
+    )
 
 
 class NanHandlingEncoder(nn.Module):

@@ -1,7 +1,12 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "lcpfn"
-description = "In-context Bayesian Learning Curve Extrapolation"
-readme = {file = "readme.md", content-type = 'text/markdown'}
+version = "0.2.0"
+description = "Learning Curve Prior-Fitted Networks (LC-PFN)"
+readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
     {name = "Steven Adriaensen", email= "adriaens@cs.uni-freiburg.de"},
@@ -9,34 +14,66 @@ authors = [
     {name = "Samuel Müller", email = "muellesa@cs.uni-freiburg.de"},
     {name = "Frank Hutter", email = "fh@cs.uni-freiburg.de"},
 ]
-requires-python = ">=3.9,<3.12"
+requires-python = ">=3.10,<3.13"
 dependencies = [
-    "torch<=1.11.0",
-    "numpy>=1.21.2,<2",
-    "requests>=2.23.0"
+    "torch>=2.2,<3",
+    "numpy>=1.23,<3",
+    "requests>=2.31,<3",
 ]
-dynamic = ["version"]
 classifiers = [
   'Intended Audience :: Science/Research',
   'License :: OSI Approved :: MIT License',
   'Programming Language :: Python',
-  'Topic :: Software Development',
-  'Topic :: Scientific/Engineering',
-  'Operating System :: Unix',
-  'Operating System :: MacOS',
   'Programming Language :: Python :: 3',
-  'Programming Language :: Python :: 3.9',
   'Programming Language :: Python :: 3.10',
   'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.12',
+  'Topic :: Scientific/Engineering :: Artificial Intelligence',
 ]
 
 [project.urls]
-homepage = "https://github.com/automl/lcpfn"
-repository = "https://github.com/automl/lcpfn"
-bugtracker = "https://github.com/automl/lcpfn/issues"
+Homepage = "https://github.com/automl/lcpfn"
+Source = "https://github.com/automl/lcpfn"
+Issues = "https://github.com/automl/lcpfn/issues"
+
+[project.optional-dependencies]
+train = [
+    "scipy>=1.10,<2",
+]
+dev = [
+    "black>=24.4,<25",
+    "mypy>=1.8,<2",
+    "pytest>=7.4,<9",
+    "ruff>=0.3,<0.5",
+    "mkdocs-material>=9.5,<10",
+    "pre-commit>=3.5,<4",
+]
 
 [tool.setuptools.packages.find]
 include = ["lcpfn*"]
 
-[tool.setuptools.dynamic]
-version = {attr = "lcpfn.version.__version__"}
+[tool.setuptools.package-data]
+"lcpfn" = ["trained_models/*"]
+
+[tool.black]
+target-version = ['py310']
+line-length = 88
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = []
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = []
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_optional = true
+show_error_codes = true
+

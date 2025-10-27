@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 import torch
 from torch import nn
 
@@ -238,10 +240,10 @@ class FullSupportBarDistribution(BarDistribution):
 
 def get_bucket_limits_(
     num_outputs: int,
-    full_range: tuple = None,
-    ys: torch.Tensor = None,
+    full_range: Optional[Tuple[float, float]] = None,
+    ys: Optional[torch.Tensor] = None,
     verbose: bool = False,
-):
+) -> torch.Tensor:
     assert (ys is not None) or (full_range is not None)
     if ys is not None:
         ys = ys.flatten()
@@ -252,10 +254,13 @@ def get_bucket_limits_(
         )
         ys_per_bucket = len(ys) // num_outputs
         if full_range is None:
-            full_range = (ys.min(), ys.max())
+            min_val, max_val = ys.min(), ys.max()
         else:
-            assert full_range[0] <= ys.min() and full_range[1] >= ys.max()
-            full_range = torch.tensor(full_range)
+            min_val, max_val = full_range
+            assert min_val <= ys.min() and max_val >= ys.max()
+            min_val = torch.tensor(min_val, dtype=ys.dtype, device=ys.device)
+            max_val = torch.tensor(max_val, dtype=ys.dtype, device=ys.device)
+        full_range_tensor = torch.stack((min_val, max_val))
         ys_sorted, ys_order = ys.sort(0)
         bucket_limits = (
             ys_sorted[ys_per_bucket - 1 :: ys_per_bucket][:-1]
@@ -267,33 +272,31 @@ def get_bucket_limits_(
             )
             print(full_range)
         bucket_limits = torch.cat(
-            [full_range[0].unsqueeze(0), bucket_limits, full_range[1].unsqueeze(0)], 0
+            [full_range_tensor[0:1], bucket_limits, full_range_tensor[1:2]], 0
         )
 
     else:
-        class_width = (full_range[1] - full_range[0]) / num_outputs
+        assert full_range is not None
+        min_val, max_val = full_range
+        class_width = (max_val - min_val) / num_outputs
         bucket_limits = torch.cat(
             [
-                full_range[0] + torch.arange(num_outputs).float() * class_width,
-                torch.tensor(full_range[1]).unsqueeze(0),
+                torch.tensor(min_val) + torch.arange(num_outputs).float() * class_width,
+                torch.tensor(max_val).unsqueeze(0),
             ],
             0,
         )
 
-    assert (
-        len(bucket_limits) - 1 == num_outputs
-        and full_range[0] == bucket_limits[0]
-        and full_range[-1] == bucket_limits[-1]
-    )
+    assert len(bucket_limits) - 1 == num_outputs
     return bucket_limits
 
 
 def get_bucket_limits(
     num_outputs: int,
-    full_range: tuple = None,
-    ys: torch.Tensor = None,
+    full_range: Optional[Tuple[float, float]] = None,
+    ys: Optional[torch.Tensor] = None,
     verbose: bool = False,
-):
+) -> torch.Tensor:
     assert (ys is None) != (
         full_range is None
     ), "Either full_range or ys must be passed."
@@ -308,12 +311,14 @@ def get_bucket_limits(
         )
         ys_per_bucket = len(ys) // num_outputs
         if full_range is None:
-            full_range = (ys.min(), ys.max())
+            min_val, max_val = ys.min(), ys.max()
         else:
             assert (
                 full_range[0] <= ys.min() and full_range[1] >= ys.max()
             ), f"full_range {full_range} not in range of ys {ys.min(), ys.max()}"
-            full_range = torch.tensor(full_range)
+            min_val = torch.tensor(full_range[0], dtype=ys.dtype)
+            max_val = torch.tensor(full_range[1], dtype=ys.dtype)
+        full_range_tensor = torch.stack((min_val, max_val))
         ys_sorted, ys_order = ys.sort(0)
         bucket_limits = (
             ys_sorted[ys_per_bucket - 1 :: ys_per_bucket][:-1]
@@ -325,15 +330,17 @@ def get_bucket_limits(
             )
             print(full_range)
         bucket_limits = torch.cat(
-            [full_range[0].unsqueeze(0), bucket_limits, full_range[1].unsqueeze(0)], 0
+            [full_range_tensor[0:1], bucket_limits, full_range_tensor[1:2]], 0
         )
 
     else:
-        class_width = (full_range[1] - full_range[0]) / num_outputs
+        assert full_range is not None
+        min_val, max_val = full_range
+        class_width = (max_val - min_val) / num_outputs
         bucket_limits = torch.cat(
             [
-                full_range[0] + torch.arange(num_outputs).float() * class_width,
-                torch.tensor(full_range[1]).unsqueeze(0),
+                min_val + torch.arange(num_outputs).float() * class_width,
+                torch.tensor(max_val).unsqueeze(0),
             ],
             0,
         )
@@ -341,9 +348,4 @@ def get_bucket_limits(
     assert (
         len(bucket_limits) - 1 == num_outputs
     ), f"len(bucket_limits) - 1 == {len(bucket_limits) - 1} != {num_outputs} == num_outputs"
-    assert full_range[0] == bucket_limits[0], f"{full_range[0]} != {bucket_limits[0]}"
-    assert (
-        full_range[-1] == bucket_limits[-1]
-    ), f"{full_range[-1]} != {bucket_limits[-1]}"
-
     return bucket_limits

@@ -4,19 +4,17 @@ from contextlib import nullcontext
 
 import torch
 from torch import nn
+from torch.cuda.amp import GradScaler, autocast
 
-from lcpfn import utils
-from lcpfn.transformer import TransformerModel
-from lcpfn.bar_distribution import (
-    BarDistribution,
-)
+from lcpfn.models import positional_encodings
+from lcpfn.models.distributions import BarDistribution
+from lcpfn.models.transformer import TransformerModel
 from lcpfn.utils import (
+    check_compatibility,
     get_cosine_schedule_with_warmup,
     get_openai_lr,
+    init_dist,
 )
-from lcpfn import positional_encodings
-from lcpfn.utils import init_dist
-from torch.cuda.amp import autocast, GradScaler
 
 
 class Losses:
@@ -172,7 +170,7 @@ def train(
     scaler = GradScaler() if train_mixed_precision else None
 
     # check that everything uses up-to-date APIs
-    utils.check_compatibility(dl)
+    check_compatibility(dl)
 
     def train_epoch():
         model.train()  # Turn on the train mode
@@ -197,9 +195,13 @@ def train(
                 with autocast(enabled=scaler is not None):
                     # If style is set to None, it should not be transferred to device
                     output = model(
-                        tuple(e.to(device) if torch.is_tensor(e) else e for e in data)
-                        if isinstance(data, tuple)
-                        else data.to(device),
+                        (
+                            tuple(
+                                e.to(device) if torch.is_tensor(e) else e for e in data
+                            )
+                            if isinstance(data, tuple)
+                            else data.to(device)
+                        ),
                         single_eval_pos=single_eval_pos,
                     )
 
