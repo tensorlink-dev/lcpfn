@@ -177,7 +177,7 @@ def train_meta(
         }
     )
 
-    model = loop.train(**training_kwargs)
+    _, _, model, _ = loop.train(**training_kwargs)
 
     if checkpoint_path is not None:
         _save_checkpoint(
