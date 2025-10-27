@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from importlib import metadata
 
-from lcpfn.inference import load_pretrained, predict_curve
-from lcpfn.train import MetaTrainConfig, train_meta
+from .inference import load_pretrained, predict_curve
+from .train import MetaTrainConfig, train_meta
 
 try:  # pragma: no cover - importlib metadata fallback for editable installs
     __version__ = metadata.version("lcpfn")

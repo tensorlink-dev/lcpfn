@@ -8,11 +8,11 @@ from typing import Tuple, Union
 import torch
 from torch import Tensor, nn
 
-from lcpfn.inference.resources import DEFAULT_MODEL_NAME, ensure_weights
-from lcpfn.models import distributions as bar_distribution
-from lcpfn.models import encoders, positional_encodings
-from lcpfn.models.lcpfn import LCPFN
-from lcpfn.models.transformer import TransformerModel
+from .resources import DEFAULT_MODEL_NAME, ensure_weights
+from ..models import distributions as bar_distribution
+from ..models import encoders, positional_encodings
+from ..models.lcpfn import LCPFN
+from ..models.transformer import TransformerModel
 
 
 def _prepare_tensor(tensor: Tensor, *, name: str) -> Tensor:
