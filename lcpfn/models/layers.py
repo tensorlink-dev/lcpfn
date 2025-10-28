@@ -82,6 +82,7 @@ class TransformerEncoderLayer(nn.Module):
         src: Tensor,
         src_mask: Optional[Tensor] = None,
         src_key_padding_mask: Optional[Tensor] = None,
+        is_causal: bool = False,
     ) -> Tensor:
         r"""Pass the input through the encoder layer.
 
@@ -162,6 +163,7 @@ class TransformerEncoderLayer(nn.Module):
                     src_,
                     attn_mask=src_mask,
                     key_padding_mask=src_key_padding_mask,
+                    is_causal=is_causal,
                 )[0]
         src = src + self.dropout1(src2)
         if not self.pre_norm:
