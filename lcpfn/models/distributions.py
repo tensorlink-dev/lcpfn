@@ -1,3 +1,4 @@
+import math
 from typing import Optional, Tuple
 
 import torch
@@ -17,13 +18,13 @@ class BarDistribution(nn.Module):
         # self.bucket_widths = self.borders[1:] - self.borders[:-1]
         self.register_buffer("bucket_widths", self.borders[1:] - self.borders[:-1])
         full_width = self.bucket_widths.sum()
-        border_order = torch.argsort(borders)
         assert (
             full_width - (self.borders[-1] - self.borders[0])
         ).abs() < 1e-4, f"diff: {full_width - (self.borders[-1] - self.borders[0])}"
-        assert (
-            border_order == torch.arange(len(borders)).to(border_order.device)
-        ).all(), "Please provide sorted borders!"
+        sorted_borders = torch.sort(borders).values
+        assert torch.equal(
+            borders, sorted_borders
+        ), "Please provide sorted borders!"
         self.num_bars = len(borders) - 1
 
     def map_to_bucket_idx(self, y):
@@ -238,6 +239,58 @@ class FullSupportBarDistribution(BarDistribution):
         return p @ bucket_means
 
 
+def _build_uniform_bucket_limits(
+    min_val: torch.Tensor,
+    max_val: torch.Tensor,
+    num_outputs: int,
+    *,
+    dtype: torch.dtype,
+    device: torch.device,
+) -> torch.Tensor:
+    """Create monotonically increasing bucket limits covering the provided range."""
+
+    min_val = torch.as_tensor(min_val, dtype=dtype, device=device)
+    max_val = torch.as_tensor(max_val, dtype=dtype, device=device)
+    range_width = (max_val - min_val).item()
+    if not math.isfinite(range_width):
+        raise ValueError("Range width must be finite.")
+
+    if abs(range_width) <= torch.finfo(dtype).eps:
+        step = torch.finfo(dtype).eps
+        offsets = torch.arange(num_outputs + 1, dtype=dtype, device=device) * step
+        return min_val + offsets
+
+    interpolation = torch.linspace(
+        0.0, 1.0, num_outputs + 1, dtype=dtype, device=device
+    )
+    return min_val + interpolation * range_width
+
+
+def _sanitize_bucket_limits(
+    bucket_limits: torch.Tensor,
+    min_val: torch.Tensor,
+    max_val: torch.Tensor,
+    num_outputs: int,
+) -> torch.Tensor:
+    """Ensure bucket limits are strictly increasing.
+
+    If the empirical quantiles produce repeated borders (for instance when the
+    target distribution has too few unique values), we fall back to a uniform
+    spacing between the observed minimum and maximum.
+    """
+
+    bucket_limits = bucket_limits.sort().values
+    if torch.any(bucket_limits[1:] - bucket_limits[:-1] <= 0):
+        bucket_limits = _build_uniform_bucket_limits(
+            min_val,
+            max_val,
+            num_outputs,
+            dtype=bucket_limits.dtype,
+            device=bucket_limits.device,
+        )
+    return bucket_limits
+
+
 def get_bucket_limits_(
     num_outputs: int,
     full_range: Optional[Tuple[float, float]] = None,
@@ -274,7 +327,9 @@ def get_bucket_limits_(
         bucket_limits = torch.cat(
             [full_range_tensor[0:1], bucket_limits, full_range_tensor[1:2]], 0
         )
-        bucket_limits = bucket_limits.sort().values
+        bucket_limits = _sanitize_bucket_limits(
+            bucket_limits, min_val, max_val, num_outputs
+        )
 
     else:
         assert full_range is not None
@@ -282,12 +337,15 @@ def get_bucket_limits_(
         class_width = (max_val - min_val) / num_outputs
         bucket_limits = torch.cat(
             [
-                torch.tensor(min_val) + torch.arange(num_outputs).float() * class_width,
+                torch.tensor(min_val)
+                + torch.arange(num_outputs).float() * class_width,
                 torch.tensor(max_val).unsqueeze(0),
             ],
             0,
         )
-        bucket_limits = bucket_limits.sort().values
+        bucket_limits = _sanitize_bucket_limits(
+            bucket_limits, torch.tensor(min_val), torch.tensor(max_val), num_outputs
+        )
 
     assert len(bucket_limits) - 1 == num_outputs
     return bucket_limits
@@ -334,7 +392,9 @@ def get_bucket_limits(
         bucket_limits = torch.cat(
             [full_range_tensor[0:1], bucket_limits, full_range_tensor[1:2]], 0
         )
-        bucket_limits = bucket_limits.sort().values
+        bucket_limits = _sanitize_bucket_limits(
+            bucket_limits, min_val, max_val, num_outputs
+        )
 
     else:
         assert full_range is not None
@@ -347,7 +407,12 @@ def get_bucket_limits(
             ],
             0,
         )
-        bucket_limits = bucket_limits.sort().values
+        bucket_limits = _sanitize_bucket_limits(
+            bucket_limits,
+            torch.as_tensor(min_val, dtype=bucket_limits.dtype),
+            torch.as_tensor(max_val, dtype=bucket_limits.dtype),
+            num_outputs,
+        )
 
     assert (
         len(bucket_limits) - 1 == num_outputs
